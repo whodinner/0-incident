@@ -1,0 +1,21 @@
+[
+  {
+    "id": "alert-001",
+    "time": "2025-09-29T13:42:00Z",
+    "host": "WIN-DC01",
+    "user": "EXAMPLE\\jsmith",
+    "summary": "Suspicious PowerShell spawned after email attachment opened",
+    "status": "new",
+    "status_history": [
+      {
+        "status": "new",
+        "changed_by": "system",
+        "timestamp": "2025-09-29T13:42:00Z"
+      }
+    ],
+    "artifacts": {
+      "email": "artifacts/email1.txt",
+      "sysmon": "artifacts/sysmon1.txt"
+    }
+  }
+]

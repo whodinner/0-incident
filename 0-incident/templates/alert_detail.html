@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Alert: {{ alert.id|e }}</h2>
+<p><b>Time:</b> {{ alert.time|e }}</p>
+<p><b>Host:</b> {{ alert.host|e }} | <b>User:</b> {{ alert.user|e }}</p>
+<p>{{ alert.summary|e }}</p>
+
+<h3>Artifacts</h3>
+{% for name, content in artifacts.items() %}
+  <h4>{{ name|e }}</h4>
+  <pre style="max-height:240px;overflow:auto;background:#f6f7f9;padding:8px">{{ content|e }}</pre>
+{% endfor %}
+
+<hr>
+
+<h3>AI Suggestion (async)</h3>
+<p><small>Auth required for AI: username <code>analyst</code>, password <code>changeme</code> (demo)</small></p>
+<button onclick="getSuggestion()">Request suggestion</button>
+<div id="suggestionBox"></div>
+
+<form id="aiAcceptForm" method="post" action="/alerts/{{ alert.id|e }}/triage" style="display:none">
+  <input type="hidden" name="analyst" id="aiAnalyst" value="">
+  <input type="hidden" name="verdict" id="aiVerdict">
+  <input type="hidden" name="action" id="aiAction">
+  <input type="hidden" name="notes" id="aiNotes">
+  <input type="hidden" name="ai_verdict" id="ai_verdict">
+  <input type="hidden" name="ai_action" id="ai_action">
+  <input type="hidden" name="ai_confidence" id="ai_confidence">
+  <input type="hidden" name="ai_rationale" id="ai_rationale">
+  <input type="hidden" name="ai_task_id" id="ai_task_id">
+  <input type="hidden" name="ai_accepted" value="1">
+  Analyst name: <input id="aiAnalystInput" maxlength="64"/><br>
+  <button type="button" onclick="acceptAiSuggestion()">Accept AI suggestion</button>
+</form>
+
+<hr>
+
+<h3>Triage Decision (manual)</h3>
+<form method="post" action="/alerts/{{ alert.id|e }}/triage">
+  Analyst: <input type="text" name="analyst" required maxlength="64"><br><br>
+  Verdict:
+  <select name="verdict">
+    <option value="tp">True Positive</option>
+    <option value="fp">False Positive</option>
+    <option value="uncertain">Uncertain</option>
+  </select><br><br>
+  Action:
+  <select name="action">
+    <option value="isolate">Isolate</option>
+    <option value="blockip">Block IP</option>
+    <option value="resetpw">Reset Password</option>
+    <option value="monitor">Monitor</option>
+  </select><br><br>
+  Notes:<br>
+  <textarea name="notes" style="width:100%;height:120px" maxlength="10000"></textarea><br>
+  <button type="submit">Submit decision</button>
+</form>
+
+<h3>Lifecycle State</h3>
+<form method="post" action="/alerts/{{ alert.id|e }}/status">
+  Analyst: <input type="text" name="analyst" required maxlength="64"><br>
+  <select name="new_status">
+    <option value="new" {% if alert.status=="new" %}selected{% endif %}>New</option>
+    <option value="in_progress" {% if alert.status=="in_progress" %}selected{% endif %}>In Progress</option>
+    <option value="triaged" {% if alert.status=="triaged" %}selected{% endif %}>Triaged</option>
+    <option value="escalated" {% if alert.status=="escalated" %}selected{% endif %}>Escalated</option>
+    <option value="closed" {% if alert.status=="closed" %}selected{% endif %}>Closed</option>
+  </select>
+  <button type="submit">Update</button>
+</form>
+
+<h4>Status History</h4>
+<ul>
+  {% for h in alert.status_history %}
+    <li>{{ h.timestamp|e }} — {{ h.status|e }} (by {{ h.changed_by|e }})</li>
+  {% endfor %}
+</ul>
+
+<script>
+function getSuggestion(){
+  fetch("/alerts/{{ alert.id|e }}/assist", {
+    method:"POST",
+    headers: { "Authorization":"Basic " + btoa("analyst:changeme") }
+  })
+    .then(res => res.json())
+    .then(data => {
+      if(data.task_id){
+        document.getElementById("suggestionBox").innerText = "Task " + data.task_id + " queued...";
+        pollTask(data.task_id);
+      } else if (data.error) {
+        document.getElementById("suggestionBox").innerText = "Error: " + data.error;
+      }
+    }).catch(err => {
+      document.getElementById("suggestionBox").innerText = "Request failed.";
+    });
+}
+
+function pollTask(taskId){
+  fetch("/assist/" + taskId)
+    .then(res => res.json())
+    .then(data => {
+      if(data.status === "done"){
+        const r = data.result;
+        const box = document.getElementById("suggestionBox");
+        const safeRationale = (r.rationale || "").replace(/[<>&]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]));
+        box.innerHTML =
+          "<b>Verdict:</b> " + r.verdict +
+          "<br><b>Action:</b> " + r.action +
+          "<br><b>Confidence:</b> " + (r.confidence ?? 0) +
+          "<br><pre>" + safeRationale + "</pre>";
+        document.getElementById("aiAcceptForm").style.display = "block";
+        document.getElementById("aiVerdict").value = r.verdict;
+        document.getElementById("aiAction").value = r.action;
+        document.getElementById("aiNotes").value = "AI suggestion accepted: " + (r.rationale || "").slice(0, 400);
+        document.getElementById("ai_verdict").value = r.verdict;
+        document.getElementById("ai_action").value = r.action;
+        document.getElementById("ai_confidence").value = r.confidence ?? "";
+        document.getElementById("ai_rationale").value = r.rationale ?? "";
+        document.getElementById("ai_task_id").value = taskId;
+      } else if (data.status) {
+        setTimeout(()=>pollTask(taskId), 1500);
+      } else {
+        document.getElementById("suggestionBox").innerText = "Task error.";
+      }
+    }).catch(()=>{ document.getElementById("suggestionBox").innerText = "Polling failed."; });
+}
+
+function acceptAiSuggestion(){
+  const name = document.getElementById("aiAnalystInput").value || "analyst";
+  document.getElementById("aiAnalyst").value = name.replace(/[^a-zA-Z0-9._-]/g,"").slice(0,64);
+  document.getElementById("aiAcceptForm").submit();
+}
+</script>
+{% endblock %}

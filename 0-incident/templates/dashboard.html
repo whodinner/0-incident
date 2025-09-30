@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Alerts</h2>
+<ul>
+  {% for alert in alerts %}
+    <li>
+      <a href="/alerts/{{ alert.id|e }}">{{ alert.id|e }} — {{ alert.summary|e }}</a>
+      [<i>{{ alert.status|e }}</i>]
+    </li>
+  {% endfor %}
+</ul>
+{% endblock %}

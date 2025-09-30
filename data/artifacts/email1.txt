@@ -1,0 +1,3 @@
+From: IT Support <it-support@example.com>
+Subject: Urgent: Password reset
+Attachment: Reset_instructions.doc (macro-enabled)

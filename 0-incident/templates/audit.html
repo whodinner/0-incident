@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Audit Log — Analyst vs AI</h2>
+
+<div style="background:#f4f4f4;padding:10px;margin-bottom:15px;border-radius:6px">
+  <h3>Summary Metrics</h3>
+  <ul>
+    <li>Total reports: {{ metrics.total_reports }}</li>
+    <li>AI suggestions generated: {{ metrics.ai_suggestions }}</li>
+    <li>AI suggestions accepted: {{ metrics.ai_accepted }} ({{ "%.1f"|format(metrics.acceptance_rate) }}%)</li>
+    <li>Analyst/AI agreement: {{ metrics.agreement }} ({{ "%.1f"|format(metrics.agreement_rate) }}%)</li>
+  </ul>
+  <div>
+    <a href="/audit/metrics.json" target="_blank">📊 Download metrics (JSON)</a> |
+    <a href="/audit/export.csv" target="_blank">📂 Download full reports (CSV)</a>
+  </div>
+</div>
+
+<div style="background:#eef;padding:10px;margin:15px 0;border-radius:6px">
+  <h3>Lifecycle KPIs (avg minutes/state)</h3>
+  <ul>
+    {% for state, avg in metrics.lifecycle_avg_minutes.items() %}
+      <li>{{ state|e }} → {{ avg }}</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<table border="1" cellpadding="6" cellspacing="0">
+  <thead>
+    <tr>
+      <th>Alert ID</th>
+      <th>Analyst</th>
+      <th>Verdict (Analyst)</th>
+      <th>Verdict (AI)</th>
+      <th>Action (Analyst)</th>
+      <th>Action (AI)</th>
+      <th>Accepted?</th>
+      <th>Confidence</th>
+      <th>Notes</th>
+      <th>Timestamp</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in reports %}
+    <tr>
+      <td>{{ r.alert_id|e }}</td>
+      <td>{{ r.analyst|e }}</td>
+      <td>{{ r.verdict|e }}</td>
+      <td>{% if r.ai_suggestion %}{{ r.ai_suggestion.verdict|e }}{% else %}-{% endif %}</td>
+      <td>{{ r.action|e }}</td>
+      <td>{% if r.ai_suggestion %}{{ r.ai_suggestion.action|e }}{% else %}-{% endif %}</td>
+      <td>{% if r.ai_accepted %}✅{% else %}❌{% endif %}</td>
+      <td>{% if r.ai_suggestion %}{{ '%.2f'|format(r.ai_suggestion.confidence or 0) }}{% endif %}</td>
+      <td style="max-width:300px">{{ (r.notes or "")|e|truncate(120) }}</td>
+      <td>{{ r.timestamp|e }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
