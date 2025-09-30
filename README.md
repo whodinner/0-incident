@@ -1,6 +1,6 @@
-# 0Incidents — SOC Triage (Production-Ready Starter)
+# 0Incident — SOC Triage (v1) Open Source
 
-A realistic SOC triage platform: FastAPI backend, Jinja UI, Celery/Redis async AI assistance, lifecycle states, audit log with exportable metrics.
+An SOC triage platform: FastAPI backend, Jinja UI, Celery/Redis async AI assistance, lifecycle states, audit log with exportable metrics.
 
 ## Features
 - Alert dashboard and detail views with artifacts
@@ -77,4 +77,4 @@ The system will try LLM first, then fallback to heuristics if unavailable.
 - Check `data/alert-001_report.json`
 - See **Audit Log** for metrics; download CSV/JSON
 
-Enjoy building 0Incidents 🔧
+Give us any feedback if you try this open source SOC, we would love to hear back from anyonne who tries it. If you support the cause, buy me a coffee.
